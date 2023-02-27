@@ -14,6 +14,17 @@ class ForecastingSARegressor(BaseEstimator, RegressorMixin):
         self.one_ts_offset = (
             pd.DateOffset(months=1) if self.freq == "M" else pd.DateOffset(days=1)
         )
+
+        if self.freq == "M":
+            self.prediction_length_offset = pd.DateOffset(months=params["prediction_length"])
+        elif self.freq == "W":
+            self.prediction_length_offset = pd.DateOffset(weeks=params["prediction_length"])
+        elif self.freq == "D" : 
+            self.prediction_length_offset = pd.DateOffset(days=params["prediction_length"])
+        else:
+            print("Check that your frequency is one of 'D', 'W', 'M' for prediction_length to work properly.")
+
+
         self.prediction_length_offset = (
             pd.DateOffset(months=params["prediction_length"])
             if self.freq == "M"
@@ -54,11 +65,16 @@ class ForecastingSARegressor(BaseEstimator, RegressorMixin):
     ) -> pd.DataFrame:
         if stride is None:
             stride = int(self.params.get("stride", 7))
-        stride_offset = (
-            pd.DateOffset(months=stride)
-            if self.freq == "M"
-            else pd.DateOffset(days=stride)
-        )
+
+        if self.freq == "M":
+            stride_offset = pd.DateOffset(months=stride)
+        elif self.freq == "W":
+            stride_offset = pd.DateOffset(weeks=stride)
+        elif self.freq == "D" : 
+            stride_offset = pd.DateOffset(days=stride)
+        else:
+            print("Check that your frequency is one of 'D', 'W' or 'M' for stride to work properly.")
+        
         df = df.copy().sort_values(by=[self.params["date_col"]])
         end_date = df[self.params["date_col"]].max() + self.one_ts_offset
         curr_date = start

@@ -37,11 +37,16 @@ class DataQualityChecks:
         Checks if the backtest interval contains at least one prediction length.
         """
         backtest_days = self.conf["backtest_months"] * 30
-        prediction_length_days = (
-            self.conf["prediction_length"]
-            if self.conf["freq"] == "D"
-            else self.conf["prediction_length"] * 30
-        )
+
+        if self.conf["freq"] == "D":
+            prediction_length_days = self.conf["prediction_length"]
+        elif self.conf["freq"] == "W":
+            prediction_length_days = self.conf["prediction_length"] * 7
+        elif self.conf["freq"] == "M":
+            prediction_length_days = self.conf["prediction_length"] * 30 
+        else:
+            print("Check that your frequency if one of 'D', 'W' or 'M' for backtest_length.")
+    
         if backtest_days < prediction_length_days:
             raise Exception(f"Backtesting interval is shorter than prediction length!")
 
