@@ -452,7 +452,9 @@ class Forecaster:
                 .withColumn("model", lit(model_conf["name"]))
                 .withColumn("use_case", lit(self.conf["use_case_name"]))
                 .write.mode("append")
-                .saveAsTable(self.conf.get("metrics_output"))
+                .format("delta")
+                .save(f"/tmp/mmf/{self.conf.get('metrics_output')}")
+                #.saveAsTable(self.conf.get("metrics_output"))
             )
         res_df = (
             res_sdf.groupby(["metric_name"])
@@ -586,7 +588,9 @@ class Forecaster:
             .withColumn("model", lit(model_conf["name"]))
             .write.mode("append")
             .option("mergeSchema", "true")
-            .saveAsTable(self.conf["scoring_output"])
+            .format("delta")
+            .save(f"/tmp/mmf/{self.conf.get('scoring_output')}")
+            #.saveAsTable(self.conf["scoring_output"])
         )
 
     def run_scoring_for_global_model(self, model_conf):
@@ -627,7 +631,9 @@ class Forecaster:
             .withColumn("model", lit(model_conf["name"]))
             .write.mode("append")
             .option("mergeSchema", "true")
-            .saveAsTable(self.conf["scoring_output"])
+            .format("delta")
+            .save(f"/tmp/mmf/{self.conf['scoring_output']}")
+            #.saveAsTable(self.conf["scoring_output"])
         )
         print(f"Finished scoring for {model_conf['name']}...")
 
