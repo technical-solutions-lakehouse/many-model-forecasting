@@ -79,7 +79,15 @@ class ForecastingSARegressor(BaseEstimator, RegressorMixin):
             if retrain:
                 self.fit(_df)
 
-            metrics = self.calculate_metrics(_df, actuals_df)
+            try:
+                metrics = self.calculate_metrics(_df, actuals_df)
+            except Exception as e:
+                metrics = {"metric_name": self.params["metric"],
+                           "metric_value": None,
+                           "forecast": bytes(),
+                           "actual": bytes(),
+                           }
+
             metrics_and_date = [
                 (
                     curr_date,

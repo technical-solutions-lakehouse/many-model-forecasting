@@ -404,37 +404,42 @@ class Forecaster:
 
         group_id = pdf[model.params["group_id"]].iloc[0]
         print(group_id)
-        try:
-            pdf = pdf.fillna(0.1)
-            pdf[model.params["target"]] = pdf[model.params["target"]].clip(0.1)
-            metrics_df = model.backtest(pdf, start=split_date, retrain=True)
-            metrics_df[model.params["group_id"]] = group_id
-            return metrics_df
-        except Exception as err:
-            _logger.error(
-                f"Error evaluating group {group_id} using model {repr(model)}: {err}",
-                exc_info=err,
-                stack_info=True,
-            )
-            # raise Exception(f"Error evaluating group {group_id}: {err}")
-            return pd.DataFrame(
-                columns=[
-                    model.params["group_id"],
-                    "backtest_window_start_date",
-                    "metric_name",
-                    "metric_value",
-                    "forecast",
-                    "actual",
-                ]
-            )
+
+        pdf = pdf.fillna(0.1)
+        pdf[model.params["target"]] = pdf[model.params["target"]].clip(0.1)
+        metrics_df = model.backtest(pdf, start=split_date, retrain=True)
+        metrics_df[model.params["group_id"]] = group_id
+        return metrics_df
+
+        #except Exception as err:
+        #    _logger.error(
+        #        f"Error evaluating group {group_id} using model {repr(model)}: {err}",
+        #        exc_info=err,
+        #        stack_info=True,
+        #    )
+        #    # raise Exception(f"Error evaluating group {group_id}: {err}")
+        #    return pd.DataFrame(
+        #        columns=[
+        #            model.params["group_id"],
+        #            "backtest_window_start_date",
+        #            "metric_name",
+        #            "metric_value",
+        #            "forecast",
+        #            "actual",
+        #        ]
+        #    )
 
     @staticmethod
     def unpack(pdf: pd.DataFrame) -> pd.DataFrame:
         _df = pdf.copy()
-        _unpicked_forecast = _df["forecast"].apply(lambda x: cloudpickle.loads(x))
-        _unpicked_actual = _df["actual"].apply(lambda x: cloudpickle.loads(x))
-        _df["forecast"] = _unpicked_forecast.apply(lambda x: np.array(x["y"]))
-        _df["actual"] = _unpicked_actual.apply(lambda x: np.array(x["y"]))
+        _unpacked_forecast = _df["forecast"] \
+            .apply(lambda x: cloudpickle.loads(x) if x else None)
+        _unpacked_actual = _df["actual"] \
+            .apply(lambda x: cloudpickle.loads(x) if x else None)
+        _df["forecast"] = _unpacked_forecast \
+            .apply(lambda x: np.array(x["y"]) if x is not None else x)
+        _df["actual"] = _unpacked_actual \
+            .apply(lambda x: np.array(x["y"]) if x is not None else x)
         return _df
 
     def evaluate_local_model(self, model_conf):
@@ -498,12 +503,12 @@ class Forecaster:
             .toPandas()
         )
         print(res_df)
+
         with mlflow.start_run(experiment_id=self.experiment_id):
             for rec in res_df.values:
                 metric_name, metric_value = rec
                 mlflow.log_metric(metric_name, metric_value)
                 mlflow.set_tag("model_name", model_conf["name"])
-                mlflow.set_tag("forecast_run_id", self.run_id)
 
     def evaluate_global_model(self, model_conf):
         mlflow_client = mlflow.tracking.MlflowClient()
